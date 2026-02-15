@@ -1,0 +1,144 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: learning-tracker-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: learning_tracker
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-schema/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - learning-tracker-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Auth Service
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_NAME: learning_tracker
+      SECRET_KEY: dev-secret-key-change-in-prod
+    ports:
+      - "5001:5001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - learning-tracker-network
+
+  # Course Service
+  course-service:
+    build: ./course-service
+    container_name: course-service
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_NAME: learning_tracker
+      SECRET_KEY: dev-secret-key-change-in-prod
+    ports:
+      - "5002:5002"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - learning-tracker-network
+
+  # Quiz Service
+  quiz-service:
+    build: ./quiz-service
+    container_name: quiz-service
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_NAME: learning_tracker
+      SECRET_KEY: dev-secret-key-change-in-prod
+    ports:
+      - "5003:5003"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - learning-tracker-network
+
+  # Progress Service
+  progress-service:
+    build: ./progress-service
+    container_name: progress-service
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_NAME: learning_tracker
+      SECRET_KEY: dev-secret-key-change-in-prod
+    ports:
+      - "5004:5004"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - learning-tracker-network
+
+  # Report Service
+  report-service:
+    build: ./report-service
+    container_name: report-service
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_NAME: learning_tracker
+      SECRET_KEY: dev-secret-key-change-in-prod
+    ports:
+      - "5005:5005"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - learning-tracker-network
+
+  # API Gateway
+  gateway:
+    build: ./gateway
+    container_name: api-gateway
+    environment:
+      AUTH_SERVICE: http://auth-service:5001
+      COURSE_SERVICE: http://course-service:5002
+      QUIZ_SERVICE: http://quiz-service:5003
+      PROGRESS_SERVICE: http://progress-service:5004
+      REPORT_SERVICE: http://report-service:5005
+    ports:
+      - "5000:5000"
+    depends_on:
+      - auth-service
+      - course-service
+      - quiz-service
+      - progress-service
+      - report-service
+    networks:
+      - learning-tracker-network
+
+volumes:
+  mysql_data:
+
+networks:
+  learning-tracker-network:
+    driver: bridge
