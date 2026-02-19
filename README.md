@@ -199,6 +199,4 @@ For production, use strong secrets and proper database credentials.
 5. → Add frontend UI (React/Vue)
 6. → Implement CI/CD pipeline
 
-## License
 
-MIT
